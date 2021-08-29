@@ -18,10 +18,6 @@
 
 using namespace DirectX;
 
-///@brief コンソール画面にフォーマット付き文字列を表示
-///@param format フォーマット(%dとか%fとかの)
-///@param 可変長引数
-///@remarksこの関数はデバッグ用です。デバッグ時にしか動作しません
 void DebugOutputFormatString(const char* format , ...) {
 #ifdef _DEBUG
 	va_list valist;
@@ -31,13 +27,12 @@ void DebugOutputFormatString(const char* format , ...) {
 #endif
 }
 
-//面倒だけど書かなあかんやつ
 LRESULT WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
-	if (msg == WM_DESTROY) {//ウィンドウが破棄されたら呼ばれます
-		PostQuitMessage(0);//OSに対して「もうこのアプリは終わるんや」と伝える
+	if (msg == WM_DESTROY) {
+		PostQuitMessage(0);
 		return 0;
 	}
-	return DefWindowProc(hwnd, msg, wparam, lparam);//規定の処理を行う
+	return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
 const unsigned int window_width=1280;
@@ -66,13 +61,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #endif
 	DebugOutputFormatString( "Show window test.");
 	HINSTANCE hInst = GetModuleHandle(nullptr);
-	//ウィンドウクラス生成＆登録
 	WNDCLASSEX w = {};
 	w.cbSize = sizeof(WNDCLASSEX);
-	w.lpfnWndProc = (WNDPROC)WindowProcedure;//コールバック関数の指定
-	w.lpszClassName = _T("DirectXTest");//アプリケーションクラス名(適当でいいです)
-	w.hInstance = GetModuleHandle(0);//ハンドルの取得
-	RegisterClassEx(&w);//アプリケーションクラス(こういうの作るからよろしくってOSに予告する)
+	w.lpfnWndProc = (WNDPROC)WindowProcedure;
+	w.lpszClassName = _T("DirectXTest");
+	w.hInstance = GetModuleHandle(0);
+	RegisterClassEx(&w);
 
 	RECT wrc = { 0,0, window_width, window_height};//ウィンドウサイズを決める
 	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);//ウィンドウのサイズはちょっと面倒なので関数を使って補正する
@@ -90,11 +84,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		nullptr);//追加パラメータ
 
 #ifdef _DEBUG
-	//デバッグレイヤーをオンに
 	EnableDebugLayer();
 #endif
-	//DirectX12まわり初期化
-	//フィーチャレベル列挙
 	D3D_FEATURE_LEVEL levels[] = {
 		D3D_FEATURE_LEVEL_12_1,
 		D3D_FEATURE_LEVEL_12_0,
@@ -117,7 +108,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 	}
 
-	//Direct3Dデバイスの初期化
 	D3D_FEATURE_LEVEL featureLevel;
 	for (auto l : levels) {
 		if (D3D12CreateDevice(tmpAdapter, l, IID_PPV_ARGS(&_dev)) == S_OK) {
@@ -128,7 +118,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	result = _dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,IID_PPV_ARGS(& _cmdAllocator));
 	result = _dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _cmdAllocator, nullptr, IID_PPV_ARGS(&_cmdList));
-	//_cmdList->Close();
 	D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
 	cmdQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;//タイムアウトなし
 	cmdQueueDesc.NodeMask = 0;
@@ -170,7 +159,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	std::vector<ID3D12Resource*> _backBuffers(swcDesc.BufferCount);
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 	for (size_t i = 0; i < swcDesc.BufferCount; ++i) {
-		//ID3D12Resource* backBuffer = nullptr;
+
 		result = _swapchain->GetBuffer(static_cast<UINT>(i), IID_PPV_ARGS(&_backBuffers[i]));
 		_dev->CreateRenderTargetView(_backBuffers[i], nullptr, handle);
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
@@ -179,7 +168,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	UINT64 _fenceVal = 0;
 	result = _dev->CreateFence(_fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fence));
 
-	ShowWindow(hwnd, SW_SHOW);//ウィンドウ表示
+	ShowWindow(hwnd, SW_SHOW);
 
 	XMFLOAT3 vertices[] = {
 		{-0.4f,-0.7f,0.0f} ,//左下
@@ -205,7 +194,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	resdesc.Layout =  D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 	
 
-	//UPLOAD(確保は可能)
 	ID3D12Resource* vertBuff = nullptr;
 	result = _dev->CreateCommittedResource(
 		&heapprop,
@@ -230,8 +218,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	unsigned short indices[] = { 0,1,2, 2,1,3 };
 
 	ID3D12Resource* idxBuff = nullptr;
-	//設定は、バッファのサイズ以外頂点バッファの設定を使いまわして
-	//OKだと思います。
 	resdesc.Width = sizeof(indices);
 	result = _dev->CreateCommittedResource(
 		&heapprop,
@@ -241,13 +227,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		nullptr,
 		IID_PPV_ARGS(&idxBuff));
 
-	//作ったバッファにインデックスデータをコピー
 	unsigned short* mappedIdx=nullptr;
 	idxBuff->Map(0, nullptr, (void**)&mappedIdx);
 	std::copy(std::begin(indices), std::end(indices), mappedIdx);
 	idxBuff->Unmap(0, nullptr);
 
-	//インデックスバッファビューを作成
 	D3D12_INDEX_BUFFER_VIEW ibView = {};
 	ibView.BufferLocation = idxBuff->GetGPUVirtualAddress();
 	ibView.Format = DXGI_FORMAT_R16_UINT;
@@ -275,7 +259,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			errstr += "\n";
 			OutputDebugStringA(errstr.c_str());
 		}
-		exit(1);//行儀悪いかな…
+		exit(1);
 	}
 	result = D3DCompileFromFile(L"BasicPixelShader.hlsl",
 		nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
@@ -293,7 +277,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			errstr += "\n";
 			OutputDebugStringA(errstr.c_str());
 		}
-		exit(1);//行儀悪いかな…
+		exit(1);
 	}
 	D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
 		{ "POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,D3D12_APPEND_ALIGNED_ELEMENT,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0 },
@@ -314,11 +298,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	D3D12_RENDER_TARGET_BLEND_DESC renderTargetBlendDesc = {};
 
-	//ひとまず加算や乗算やαブレンディングは使用しない
 	renderTargetBlendDesc.BlendEnable = false;
 	renderTargetBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
-	//ひとまず論理演算は使用しない
 	renderTargetBlendDesc.LogicOpEnable = false;
 	
 	gpipeline.BlendState.RenderTarget[0] = renderTargetBlendDesc;
@@ -393,14 +375,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
-		//もうアプリケーションが終わるって時にmessageがWM_QUITになる
 		if (msg.message == WM_QUIT) {			
 			break;
 		}
 		
 		
-		//DirectX処理
-		//バックバッファのインデックスを取得
 		auto bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
 		D3D12_RESOURCE_BARRIER BarrierDesc = {};
@@ -424,9 +403,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//画面クリア
 		
 		float r, g, b;
-		r = (float)(0xff & frame >> 16) / 255.0f;
+		r = (float)(0xff & frame >> 16) / 255.0f;/*グラデ速度*/
 		g = (float)(0xff & frame >>8) / 255.0f;
-		b = (float)(0xff & frame >> 0) / 255.0f;
+		b = (float)(0xff & frame >> 0) / 255.0f;/*ここまで*/
 		float clearColor[] = { r,g,b,1.0f };//黄色
 		_cmdList->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
 		++frame;
@@ -439,22 +418,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		_cmdList->IASetIndexBuffer(&ibView);
 		
 
-		//_cmdList->DrawInstanced(4, 1, 0, 0);
-		_cmdList->DrawIndexedInstanced(6, 1, 0, 0,0);
+		_cmdList->DrawIndexedInstanced(6, 1, 0, 0,0);//四角サイズ
 
 		BarrierDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 		_cmdList->ResourceBarrier(1, &BarrierDesc);
 
-		//命令のクローズ
 		_cmdList->Close();
 
-
 		
-		//コマンドリストの実行
 		ID3D12CommandList* cmdlists[] = { _cmdList };
 		_cmdQueue->ExecuteCommandLists(1, cmdlists);
-		////待ち
+
 		_cmdQueue->Signal(_fence, ++_fenceVal);
 
 		if(_fence->GetCompletedValue() != _fenceVal) {
@@ -466,12 +441,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		_cmdAllocator->Reset();//キューをクリア
 		_cmdList->Reset(_cmdAllocator, _pipelinestate);//再びコマンドリストをためる準備
 
-
-		//フリップ
 		_swapchain->Present(1, 0);
 		
 	}
-	//もうクラス使わんから登録解除してや
 	UnregisterClass(w.lpszClassName, w.hInstance);	
 	return 0;
 }
