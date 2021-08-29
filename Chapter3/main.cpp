@@ -12,10 +12,6 @@
 #pragma comment(lib,"d3d12.lib")
 #pragma comment(lib,"dxgi.lib")
 
-///@brief コンソール画面にフォーマット付き文字列を表示
-///@param format フォーマット(%dとか%fとかの)
-///@param 可変長引数
-///@remarksこの関数はデバッグ用です。デバッグ時にしか動作しません
 void DebugOutputFormatString(const char* format , ...) {
 #ifdef _DEBUG
 	va_list valist;
@@ -25,13 +21,12 @@ void DebugOutputFormatString(const char* format , ...) {
 #endif
 }
 
-//面倒ですが、ウィンドウプロシージャは必須なので書いておきます
 LRESULT WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
-	if (msg == WM_DESTROY) {//ウィンドウが破棄されたら呼ばれます
-		PostQuitMessage(0);//OSに対して「もうこのアプリは終わるんや」と伝える
+	if (msg == WM_DESTROY) {
+		PostQuitMessage(0);
 		return 0;
 	}
-	return DefWindowProc(hwnd, msg, wparam, lparam);//規定の処理を行う
+	return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
 const unsigned int window_width=1280;
@@ -60,37 +55,30 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 #endif
 	DebugOutputFormatString( "Show window test.");
 	HINSTANCE hInst = GetModuleHandle(nullptr);
-	//ウィンドウクラス生成＆登録
 	WNDCLASSEX w = {};
 	w.cbSize = sizeof(WNDCLASSEX);
-	w.lpfnWndProc = (WNDPROC)WindowProcedure;//コールバック関数の指定
-	w.lpszClassName = _T("DirectXTest");//アプリケーションクラス名(適当でいいです)
-	w.hInstance = GetModuleHandle(0);//ハンドルの取得
-	RegisterClassEx(&w);//アプリケーションクラス(こういうの作るからよろしくってOSに予告する)
+	w.lpfnWndProc = (WNDPROC)WindowProcedure;
+	w.lpszClassName = _T("DirectXTest");
+	w.hInstance = GetModuleHandle(0);
+	RegisterClassEx(&w);
 
-	RECT wrc = { 0,0, window_width, window_height};//ウィンドウサイズを決める
-	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);//ウィンドウのサイズはちょっと面倒なので関数を使って補正する
-	//ウィンドウオブジェクトの生成
-	HWND hwnd = CreateWindow(w.lpszClassName,//クラス名指定
-		_T("DX12テスト"),//タイトルバーの文字
-		WS_OVERLAPPEDWINDOW,//タイトルバーと境界線があるウィンドウです
-		CW_USEDEFAULT,//表示X座標はOSにお任せします
-		CW_USEDEFAULT,//表示Y座標はOSにお任せします
+	RECT wrc = { 0,0, window_width, window_height};
+	AdjustWindowRect(&wrc, WS_OVERLAPPEDWINDOW, false);
+	HWND hwnd = CreateWindow(w.lpszClassName,
+		_T("DX12テスト"),
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
 		wrc.right - wrc.left,//ウィンドウ幅
 		wrc.bottom - wrc.top,//ウィンドウ高
 		nullptr,//親ウィンドウハンドル
 		nullptr,//メニューハンドル
-		w.hInstance,//呼び出しアプリケーションハンドル
-		nullptr);//追加パラメータ
+		w.hInstance,
+		nullptr);
 
 #ifdef _DEBUG
-	//デバッグレイヤーをオンに
-	//デバイス生成時前にやっておかないと、デバイス生成後にやると
-	//デバイスがロスとしてしまうので注意
 	EnableDebugLayer();
 #endif
-	//DirectX12まわり初期化
-	//フィーチャレベル列挙
 	D3D_FEATURE_LEVEL levels[] = {
 		D3D_FEATURE_LEVEL_12_1,
 		D3D_FEATURE_LEVEL_12_0,
@@ -118,7 +106,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 	}
 
-	//Direct3Dデバイスの初期化
 	D3D_FEATURE_LEVEL featureLevel;
 	for (auto l : levels) {
 		if (D3D12CreateDevice(tmpAdapter, l, IID_PPV_ARGS(&dev_)) == S_OK) {
@@ -131,11 +118,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	result = dev_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, cmdAllocator_, nullptr, IID_PPV_ARGS(&cmdList_));
 	//_cmdList->Close();
 	D3D12_COMMAND_QUEUE_DESC cmdQueueDesc = {};
-	cmdQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;//タイムアウトなし
+	cmdQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	cmdQueueDesc.NodeMask = 0;
-	cmdQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;//プライオリティ特に指定なし
-	cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;//ここはコマンドリストと合わせてください
-	result = dev_->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&cmdQueue_));//コマンドキュー生成
+	cmdQueueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
+	cmdQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+	result = dev_->CreateCommandQueue(&cmdQueueDesc, IID_PPV_ARGS(&cmdQueue_));
 
 	DXGI_SWAP_CHAIN_DESC1 swapchainDesc = {};
 	swapchainDesc.Width = window_width;
@@ -160,10 +147,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		(IDXGISwapChain1**)&swapchain_);
 
 	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;//レンダーターゲットビューなので当然RTV
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	heapDesc.NodeMask = 0;
-	heapDesc.NumDescriptors = 2;//表裏の２つ
-	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;//特に指定なし
+	heapDesc.NumDescriptors = 2;
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	ID3D12DescriptorHeap* rtvHeaps = nullptr;
 	result = dev_->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&rtvHeaps));
 	DXGI_SWAP_CHAIN_DESC swcDesc = {};
@@ -179,7 +166,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	UINT64 _fenceVal = 0;
 	result = dev_->CreateFence(_fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fence));
 
-	ShowWindow(hwnd, SW_SHOW);//ウィンドウ表示
+	ShowWindow(hwnd, SW_SHOW);
 
 	MSG msg = {};
 	while (true) {
@@ -188,14 +175,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
-		//もうアプリケーションが終わるって時にmessageがWM_QUITになる
 		if (msg.message == WM_QUIT) {			
 			break;
 		}
 		
 		
-		//DirectX処理
-		//バックバッファのインデックスを取得
 		auto bbIdx = swapchain_->GetCurrentBackBufferIndex();
 
 		D3D12_RESOURCE_BARRIER BarrierDesc = {};
@@ -207,12 +191,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 		cmdList_->ResourceBarrier(1, &BarrierDesc);
 
-		//レンダーターゲットを指定
 		auto rtvH = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 		rtvH.ptr += static_cast<ULONG_PTR>(bbIdx * dev_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV));
 		cmdList_->OMSetRenderTargets(1, &rtvH , false, nullptr);
 
-		//画面クリア
 		float clearColor[] = {1.0f,0.1f,0.2f,1.0f};//色変更
 		cmdList_->ClearRenderTargetView(rtvH, clearColor, 0, nullptr);
 
@@ -220,14 +202,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		BarrierDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
 		cmdList_->ResourceBarrier(1, &BarrierDesc);
 
-		//命令のクローズ
 		cmdList_->Close();
 
-		
-		//コマンドリストの実行
 		ID3D12CommandList* cmdlists[] = { cmdList_ };
 		cmdQueue_->ExecuteCommandLists(1, cmdlists);
-		////待ち
 		cmdQueue_->Signal(_fence, ++_fenceVal);
 
 		if(_fence->GetCompletedValue() != _fenceVal) {
@@ -236,15 +214,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			WaitForSingleObject(event, INFINITE);
 			CloseHandle(event);
 		}
-		cmdAllocator_->Reset();//キューをクリア
-		cmdList_->Reset(cmdAllocator_, nullptr);//再びコマンドリストをためる準備
+		cmdAllocator_->Reset();
+		cmdList_->Reset(cmdAllocator_, nullptr);
 
 
-		//フリップ
 		swapchain_->Present(1, 0);
 		
 	}
-	//もうクラス使わんから登録解除してや
 	UnregisterClass(w.lpszClassName, w.hInstance);	
 	return 0;
 }
